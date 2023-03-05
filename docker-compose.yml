@@ -17,7 +17,11 @@ services:
       - REDIS_HOST=redis
       - POSTGRESQL_HOST=postgres
     ports:
-      - 8080:8080
+      - 88080:8080
+    networks:
+      chirpstack-internal:
+      chirpstack-external:
+        ipv4_address: 192.168.179.162
 
   chirpstack-gateway-bridge-eu868:
     image: chirpstack/chirpstack-gateway-bridge:4
@@ -28,7 +32,9 @@ services:
       - ./configuration/chirpstack-gateway-bridge:/etc/chirpstack-gateway-bridge
     depends_on: 
       - mosquitto
-
+    networks:
+      chirpstack-internal:
+        
   chirpstack-rest-api:
     image: chirpstack/chirpstack-rest-api:4
     restart: unless-stopped
@@ -37,7 +43,10 @@ services:
       - 8090:8090
     depends_on:
       - chirpstack
+    networks:
+      chirpstack-internal:
 
+        
   postgres:
     image: postgres:14-alpine
     restart: unless-stopped
@@ -46,13 +55,18 @@ services:
       - postgresqldata:/var/lib/postgresql/data
     environment:
       - POSTGRES_PASSWORD=root
+    networks:
+      chirpstack-internal:
 
+        
   redis:
     image: redis:7-alpine
     restart: unless-stopped
     volumes:
       - redisdata:/data
-
+    networks:
+      chirpstack-internal:
+        
   mosquitto:
     image: eclipse-mosquitto:2
     restart: unless-stopped
@@ -60,7 +74,23 @@ services:
       - 1883:1883
     volumes: 
       - ./configuration/mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf
+    networks:
+      chirpstack-internal:
 
+        
 volumes:
   postgresqldata:
   redisdata:
+  
+networks:
+  chirpstack-internal:
+  chirpstack-external:
+      driver: ipvlan
+      driver_opts:
+        parent: eth2
+      ipam:
+        config:
+          - subnet: 192.168.179.0/24
+            ip_range: 192.168.179.162/32
+            gateway: 192.168.179.1
+
